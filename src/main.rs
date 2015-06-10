@@ -1,8 +1,16 @@
-// use std::string::String;
+extern crate rustc_serialize;
+use rustc_serialize::{Decodable, Encodable, json};
+
+use std::str;
 use std::io::Read;
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 
+#[derive(RustcDecodable, RustcEncodable)]
+pub struct JsonDataStruct  {
+    foo: String,
+    other_foo: String,
+}
 
 fn handle_client(mut stream: TcpStream) {
     // ...
@@ -10,11 +18,26 @@ fn handle_client(mut stream: TcpStream) {
 
     match stream.read(buf) {
         Ok(size) => {
-            // let slice: &[u8] = &*buf;
             println!("Size {}", size);
-            println!("{:?}", &*buf as &[u8]);
+            for x in 0..size {
+                print!("{:#X} ", buf[x]);
+            };
+            println!("");
+
+            let s = match str::from_utf8(&buf[..size]) {
+                Ok(v) => v,
+                Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+            };
+
+            println!("{:?}", s);
+
+            let decoded: JsonDataStruct = json::decode(s).unwrap();
+            println!("{:?}", decoded.foo);
+            println!("{:?}", decoded.other_foo);
         }
-        Err(e) => { /* connection failed */ }
+        Err(e) => {
+            println!("{:?}", e);
+        }
     }
 }
 
@@ -38,7 +61,9 @@ fn main() {
                     handle_client(stream)
                 });
             }
-            Err(e) => { /* connection failed */ }
+            Err(e) => {
+                println!("{:?}", e);
+            }
         }
     }
     // close the socket server
