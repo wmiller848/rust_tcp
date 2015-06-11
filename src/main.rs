@@ -1,6 +1,9 @@
 extern crate rustc_serialize;
 use rustc_serialize::{Decodable, Encodable, json};
 
+extern crate bincode;
+use bincode::SizeLimit;
+
 use std::str;
 use std::io::Read;
 use std::net::{TcpListener, TcpStream};
@@ -19,6 +22,7 @@ fn handle_client(mut stream: TcpStream) {
     match stream.read(buf) {
         Ok(size) => {
             println!("Size {}", size);
+
             for x in 0..size {
                 print!("{:#X} ", buf[x]);
             };
@@ -32,6 +36,15 @@ fn handle_client(mut stream: TcpStream) {
             println!("{:?}", s);
 
             let decoded: JsonDataStruct = json::decode(s).unwrap();
+            println!("{:?}", decoded.foo);
+            println!("{:?}", decoded.other_foo);
+            let encoded: Vec<u8> = bincode::encode(&decoded, SizeLimit::Infinite).unwrap();
+            for x in 0..encoded.len() {
+                print!("{:#X} ", encoded[x]);
+            };
+            println!("");
+
+            let decoded: JsonDataStruct = bincode::decode(&encoded[..]).unwrap();
             println!("{:?}", decoded.foo);
             println!("{:?}", decoded.other_foo);
         }
